@@ -2,8 +2,8 @@
   "name": "iina-tcode",
   "identifier": "com.saturdaythrowaway.iina-tcode",
   "ghRepo": "saturdaythrowaway/iina-tcode",
-  "ghVersion": 1,
-  "version": "0.0.1",
+  "ghVersion": 2,
+  "version": "0.0.2",
   "description": "TCode Support for IINA",
   "author": {
     "name": "saturdaythrowaway",
