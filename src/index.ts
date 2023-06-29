@@ -3,7 +3,7 @@ const { core, console, file, mpv, utils, http, event, overlay, preferences } = i
 
 if (!file.exists("@data/tcode-player")) {
   console.log("Downloading tcode-player...");
-  http.download("https://github.com/saturdaythrowaway/iina-tcode", "@data/tcode-player")
+  http.download("https://github.com/saturdaythrowaway/iina-tcode/releases/latest/download/tcode-player", "@data/tcode-player")
 } else {
   utils.exec("@data/tcode-player", ["--logfile", "/tmp/tcode-player.log", "listen", "&"]);
 }
