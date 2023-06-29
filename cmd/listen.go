@@ -40,13 +40,21 @@ func (m MethodCall) GetParam(key string) string {
 	return ""
 }
 
-func respond(w http.ResponseWriter, msg string) {
-	_, err := w.Write([]byte(msg))
+func respond(w http.ResponseWriter, status int, msg string) {
+	var template = `<?xml version="1.0"?>
+	<methodResponse>
+	   <params>
+		  <param>
+			 <value><string>%s</string></value>
+		  </param>
+	   </params>
+	</methodResponse>`
+	w.WriteHeader(status)
+	_, err := w.Write([]byte(fmt.Sprintf(template, msg)))
 	if err != nil {
 		panic(err)
 	}
 }
-
 func listen(port int) error {
 	var loadedScripts *Scripts
 	var tcode *TCode
@@ -82,7 +90,7 @@ func listen(port int) error {
 				tcode.Seek(ts)
 			}
 		case "version": // no args
-			respond(w, "1.0")
+			respond(w, http.StatusOK, "1.0")
 		case "load": // L#,R#,V#,script
 			dir := call.GetParam("dir")
 			if dir == "" {
@@ -90,7 +98,8 @@ func listen(port int) error {
 			}
 
 			if dir == "" {
-				respond(w, "no folder or dir param")
+				respond(w, http.StatusInternalServerError, "no folder or dir param")
+
 				return
 			}
 
@@ -98,10 +107,12 @@ func listen(port int) error {
 			err := loadedScripts.Load(dir)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to load scripts")
-				respond(w, err.Error())
-			} else {
-				respond(w, "ok")
+				respond(w, http.StatusInternalServerError, err.Error())
+
+				return
 			}
+
+			respond(w, http.StatusOK, fmt.Sprintf("loaded %v", loadedScripts.Loaded()))
 
 			if tcode != nil {
 				tcode.Close()
@@ -148,47 +159,51 @@ func listen(port int) error {
 				panic(err)
 			}
 
-			respond(w, "ok")
+			respond(w, http.StatusOK, "render")
 		case "pause": // seek
 			if tcode == nil {
-				respond(w, "file not loaded")
-			} else {
-				respond(w, "ok")
+				respond(w, http.StatusInternalServerError, "file not loaded")
 
-				tcode.Pause()
+				return
+			}
 
-				seek := call.GetParam("seek")
-				if seek != "" {
-					ts, err := time.ParseDuration(seek)
-					if err != nil {
-						log.Error().Err(err).Str("seek", seek).Msg("failed to parse seek")
+			respond(w, http.StatusOK, "pause")
 
-						return
-					}
+			tcode.Pause()
 
-					tcode.Seek(ts)
+			seek := call.GetParam("seek")
+			if seek != "" {
+				ts, err := time.ParseDuration(seek)
+				if err != nil {
+					log.Error().Err(err).Str("seek", seek).Msg("failed to parse seek")
+
+					return
 				}
+
+				tcode.Seek(ts)
 			}
 		case "play": // seek
 			if tcode == nil {
-				respond(w, "file not loaded")
-			} else {
-				respond(w, "ok")
+				respond(w, http.StatusInternalServerError, "file not loaded")
 
-				seek := call.GetParam("seek")
-				if seek != "" {
-					ts, err := time.ParseDuration(seek)
-					if err != nil {
-						log.Error().Err(err).Str("seek", seek).Msg("failed to parse seek")
+				return
+			}
 
-						return
-					}
+			respond(w, http.StatusOK, "play")
 
-					tcode.Seek(ts)
+			seek := call.GetParam("seek")
+			if seek != "" {
+				ts, err := time.ParseDuration(seek)
+				if err != nil {
+					log.Error().Err(err).Str("seek", seek).Msg("failed to parse seek")
+
+					return
 				}
 
-				tcode.Play()
+				tcode.Seek(ts)
 			}
+
+			tcode.Play()
 		default:
 			log.Debug().Msgf("%s %s %s", r.RemoteAddr, call.MethodName, call.Params)
 		}
