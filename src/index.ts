@@ -57,7 +57,10 @@ event.on("iina.file-loaded", () => {
     .join("/");
   if (dir.startsWith("file://")) {
     dir = dir.slice(7);
-    rpc.call("load", ["folder", dir]);
+    rpc.call("load", ["folder", dir]).then((res) => {
+      core.osd(res)
+    })
+
     // rpc.call("render", ["output", "/tmp/overlay.png"])
     // overlay.simpleMode();
     // overlay.setContent("<img src='file:///tmp/overlay.png' />")
