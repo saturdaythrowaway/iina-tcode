@@ -56,6 +56,50 @@ type Scripts struct {
 	Valve   Script // V2
 }
 
+func (s Scripts) Loaded() []string {
+	loaded := []string{}
+	for _, script := range []*Script{
+		&s.Stroke,
+		&s.Surge,
+		&s.Sway,
+		&s.Suck,
+		&s.Twist,
+		&s.Roll,
+		&s.Pitch,
+		&s.Vibrate,
+		&s.Pump,
+		&s.Valve,
+	} {
+		if script == nil {
+			continue
+		}
+
+		path := ""
+		label := script.name
+
+		if s.useSoft && script.Soft != nil {
+			path = script.Soft.path
+			label = "soft." + label
+		} else if s.useHard && script.Hard != nil {
+			path = script.Hard.path
+			label = "hard." + label
+		} else if s.useAlt && script.Alt != nil {
+			path = script.Alt.path
+			label = "alt." + label
+		} else {
+			if script.Default == nil {
+				continue
+			}
+
+			path = script.Default.path
+		}
+
+		loaded = append(loaded, fmt.Sprintf("%v (%v)", path, label))
+	}
+
+	return loaded
+}
+
 func (s *Scripts) Reset() {
 	s.useSoft = false
 	s.useHard = false
@@ -218,8 +262,6 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 
 	tcode.channels = make([]channel, 0)
 
-	channels := []string{}
-
 	for _, script := range []*Script{
 		&s.Stroke,
 		&s.Surge,
@@ -241,26 +283,21 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 		ch.channel = script.Channel
 		ch.spline = &interp.NaturalCubic{}
 
-		data := script.Default
+		var data *Funscript
 
-		label := script.name
-		if s.useSoft {
+		if s.useSoft && script.Soft != nil {
 			data = script.Soft
-			label = "soft." + label
-		} else if s.useHard {
+		} else if s.useHard && script.Hard != nil {
 			data = script.Hard
-			label = "hard." + label
-		} else if s.useAlt {
+		} else if s.useAlt && script.Alt != nil {
 			data = script.Alt
-			label = "alt." + label
-		}
+		} else {
+			if script.Default == nil {
+				continue
+			}
 
-		if data == nil {
-			continue
+			data = script.Default
 		}
-
-		label += fmt.Sprintf(": (%s)", data.path)
-		channels = append(channels, label)
 
 		xs, ys := []float64{}, []float64{}
 
@@ -283,8 +320,6 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 			ys = append(ys, pos)
 		}
 
-		fmt.Println(xs, ys)
-
 		err := ch.spline.Fit(xs, ys)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to fit spline")
@@ -293,7 +328,7 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 		tcode.channels = append(tcode.channels, ch)
 	}
 
-	log.Info().Any("channels", channels).Msgf("loaded %d channels", len(tcode.channels))
+	log.Info().Any("loaded", s.Loaded()).Msgf("loaded %d channels", len(tcode.channels))
 
 	return tcode, nil
 }
