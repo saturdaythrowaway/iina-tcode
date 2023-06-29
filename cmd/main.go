@@ -53,7 +53,7 @@ func main() {
 			log.Warn().Err(err).Msg("failed to connect to device")
 		}
 
-		buf, _ := exec.Command("lsof", fmt.Sprintf("-ti:%d", *port)).Output()
+		buf, _ := exec.Command("lsof", fmt.Sprintf("-i:%d", *port), "-sTCP:LISTEN", "-tPn").Output()
 		pid := strings.TrimSuffix(string(buf), "\n")
 		if string(pid) != "" {
 			cmd := exec.Command("kill", "-9", pid)
