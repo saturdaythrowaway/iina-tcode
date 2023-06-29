@@ -124,6 +124,9 @@ func listen(port int) error {
 					}
 				}
 			}()
+
+			tcode.messages <- "L00, L10, L20, L30, A10, R00, R10, R20, V00, V10, A20, V20"
+
 		case "set":
 
 		case "render": // output
