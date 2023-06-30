@@ -1,6 +1,6 @@
 const { core, console, file, mpv, utils, http, event, overlay, preferences } = iina;
 
-const tcodePlayerVersion = "0.0.2";
+const tcodePlayerVersion = "0.0.3";
 
 if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
   console.log("Downloading tcode-player...");
