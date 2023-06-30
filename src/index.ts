@@ -1,6 +1,6 @@
 const { core, console, file, mpv, utils, http, event, overlay, preferences } = iina;
 
-const tcodePlayerVersion = "0.0.1";
+const tcodePlayerVersion = "0.0.2";
 
 if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
   console.log("Downloading tcode-player...");
@@ -24,6 +24,7 @@ if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
   console.log("tcode-player already exists")
   utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, ["--logfile", "/tmp/tcode-player.log", "listen", "&"]);
 }
+
 
 let rpc = http.xmlrpc("http://localhost:6800/xmlrpc");
 let pos = core.status.position;
