@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"strings"
 
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/rs/zerolog/log"
@@ -32,18 +33,16 @@ func sendTCode(cmd string) error {
 		return nil
 	}
 
-	if cmd[len(cmd)-1] != '\n' {
-		cmd += "\n"
-	}
+	cmd = strings.TrimSuffix(cmd, "\n")
 
 	if port != nil {
-		_, err := port.Write([]byte(cmd))
+		_, err := port.Write([]byte(cmd + "\n"))
 		if err != nil {
 			return err
 		}
 	}
 
-	log.Debug().Str("tcode", cmd).Msg("sent tcode")
+	log.Debug().Str("tcode", cmd).Msg("tcode")
 
 	return nil
 }

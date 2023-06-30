@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"gonum.org/v1/gonum/interp"
 )
@@ -19,8 +18,13 @@ type FunscriptAction struct {
 	Pos int `json:"pos"`
 }
 
-type Funscript struct {
+type Script struct {
 	path string // for debugging
+	name string // for debugging
+
+	Axis     Axis      `json:"-"`
+	Channel  int       `json:"-"`
+	Modifier ScriptMod `json:"-"`
 
 	Actions  []FunscriptAction `json:"actions"`
 	Inverted bool              `json:"inverted"`
@@ -28,109 +32,143 @@ type Funscript struct {
 	Version  string            `json:"version"`
 }
 
-type Script struct {
-	name    string // for debugging
-	Axis    Axis
-	Channel int
-
-	Default *Funscript
-	Alt     *Funscript
-	Soft    *Funscript
-	Hard    *Funscript
-}
-
 type Scripts struct {
-	useSoft bool
-	useHard bool
-	useAlt  bool
+	preferedModifier ScriptMod
 
-	Stroke  Script // L0
-	Surge   Script // L1
-	Sway    Script // L2
-	Suck    Script // L3/A1
-	Twist   Script // R0
-	Roll    Script // R1
-	Pitch   Script // R2
-	Vibrate Script // V0
-	Pump    Script // V1/A2
-	Valve   Script // V2
+	scripts map[string]*Script
 }
+
+func NewScript(path string) (*Script, error) {
+	var name = strings.TrimSuffix(path, ".funscript")
+	script := Script{}
+	script.path = path
+
+	switch {
+	case strings.HasSuffix(name, ".soft"):
+		script.Modifier = ScriptModSoft
+	case strings.HasSuffix(name, ".hard"):
+		script.Modifier = ScriptModHard
+	case strings.HasSuffix(name, ".alt"):
+		script.Modifier = ScriptModAlt
+	}
+
+	if script.Modifier != ScriptModDefault {
+		name = strings.TrimSuffix(name, "."+script.Modifier.String())
+	}
+
+	switch {
+	case strings.HasSuffix(name, ".surge"):
+		script.name = "surge"
+		script.Axis = AxisLinear
+		script.Channel = 1
+	case strings.HasSuffix(name, ".sway"):
+		script.name = "sway"
+		script.Axis = AxisLinear
+		script.Channel = 2
+	case strings.HasSuffix(name, ".stroke"):
+		script.name = "stroke"
+		script.Axis = AxisLinear
+		script.Channel = 0
+	case strings.HasSuffix(name, ".suck"):
+		script.name = "suck"
+		script.Axis = AxisAlt
+		script.Channel = 1
+	case strings.HasSuffix(name, ".twist"):
+		script.name = "twist"
+		script.Axis = AxisRotary
+		script.Channel = 0
+	case strings.HasSuffix(name, ".roll"):
+		script.name = "roll"
+		script.Axis = AxisRotary
+		script.Channel = 1
+	case strings.HasSuffix(name, ".pitch"):
+		script.name = "pitch"
+		script.Axis = AxisRotary
+		script.Channel = 2
+	case strings.HasSuffix(name, ".vibrate"):
+		script.name = "vibrate"
+		script.Axis = AxisVibrate
+		script.Channel = 0
+	case strings.HasSuffix(name, ".pump"):
+		script.name = "pump"
+		script.Axis = AxisAlt
+		script.Channel = 2
+	case strings.HasSuffix(name, ".valve"):
+		script.name = "valve"
+		script.Axis = AxisVibrate
+		script.Channel = 2
+	default:
+		script.name = "stroke"
+		script.Axis = AxisLinear
+		script.Channel = 0
+	}
+
+	f, err := os.Open(script.path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open funscript: %w", err)
+	}
+
+	err = json.NewDecoder(f).Decode(&script)
+	if err != nil {
+		f.Close()
+
+		return nil, fmt.Errorf("failed to decode funscript: %w", err)
+	}
+
+	f.Close()
+
+	return &script, nil
+}
+
+type ScriptMod int
+
+func (s ScriptMod) String() string {
+	switch s {
+	case ScriptModAlt:
+		return "alt"
+	case ScriptModSoft:
+		return "soft"
+	case ScriptModHard:
+		return "hard"
+	default:
+		return ""
+	}
+}
+
+const (
+	ScriptModDefault ScriptMod = iota
+	ScriptModAlt
+	ScriptModSoft
+	ScriptModHard
+)
 
 func (s Scripts) Loaded() []string {
 	loaded := []string{}
-	for _, script := range []*Script{
-		&s.Stroke,
-		&s.Surge,
-		&s.Sway,
-		&s.Suck,
-		&s.Twist,
-		&s.Roll,
-		&s.Pitch,
-		&s.Vibrate,
-		&s.Pump,
-		&s.Valve,
-	} {
-		if script == nil {
-			continue
-		}
-
-		path := ""
-		label := script.name
-
-		if s.useSoft && script.Soft != nil {
-			path = script.Soft.path
-			label = "soft." + label
-		} else if s.useHard && script.Hard != nil {
-			path = script.Hard.path
-			label = "hard." + label
-		} else if s.useAlt && script.Alt != nil {
-			path = script.Alt.path
-			label = "alt." + label
-		} else {
-			if script.Default == nil {
-				continue
-			}
-
-			path = script.Default.path
-		}
-
-		loaded = append(loaded, fmt.Sprintf("%v (%v)", path, label))
+	for _, script := range s.scripts {
+		loaded = append(loaded, filepath.Base(script.path))
 	}
 
 	return loaded
 }
 
 func (s *Scripts) Reset() {
-	s.useSoft = false
-	s.useHard = false
-	s.useAlt = false
-
-	s.Stroke = Script{}
-	s.Surge = Script{}
-	s.Sway = Script{}
-	s.Suck = Script{}
-	s.Twist = Script{}
-	s.Roll = Script{}
-	s.Pitch = Script{}
-	s.Vibrate = Script{}
-	s.Pump = Script{}
-	s.Valve = Script{}
+	s.scripts = map[string]*Script{}
 }
 
 func (s *Scripts) Load(dir string) error {
 	s.Reset()
 
 	if dir == "" {
-		return errors.New("no folder or dir param")
+		return fmt.Errorf("no folder or dir param")
 	}
 
 	if _, err := os.Stat(dir); err != nil {
-		return errors.Wrap(err, "failed to stat dir")
+		return fmt.Errorf("failed to stat dir: %w", err)
 	}
 
 	dirents, err := os.ReadDir(dir)
 	if err != nil {
-		return errors.Wrap(err, "failed to read dir")
+		return fmt.Errorf("failed to read dir: %w", err)
 	}
 
 	// todo: handle script collisions
@@ -143,94 +181,24 @@ func (s *Scripts) Load(dir string) error {
 			continue
 		}
 
-		var name = strings.TrimSuffix(dirent.Name(), ".funscript")
-
-		var soft, hard, alt bool
-		switch {
-		case strings.HasSuffix(name, ".soft"):
-			soft = true
-			name = strings.TrimSuffix(name, ".soft")
-		case strings.HasSuffix(name, ".hard"):
-			hard = true
-			name = strings.TrimSuffix(name, ".hard")
-		case strings.HasSuffix(name, ".alt"):
-			alt = true
-			name = strings.TrimSuffix(name, ".alt")
-		}
-
-		var script *Script
-
-		switch {
-		case strings.HasSuffix(name, ".surge"):
-			script = &s.Surge
-			script.name = "surge"
-			script.Axis = AxisLinear
-			script.Channel = 1
-		case strings.HasSuffix(name, ".sway"):
-			script = &s.Sway
-			script.name = "sway"
-			script.Axis = AxisLinear
-			script.Channel = 2
-		case strings.HasSuffix(name, ".stroke"):
-			script = &s.Stroke
-			script.name = "stroke"
-			script.Axis = AxisLinear
-			script.Channel = 0
-		case strings.HasSuffix(name, ".suck"):
-			script = &s.Suck
-			script.name = "suck"
-			script.Axis = AxisAlt
-			script.Channel = 1
-		case strings.HasSuffix(name, ".twist"):
-			script = &s.Twist
-			script.name = "twist"
-			script.Axis = AxisRotary
-			script.Channel = 0
-		case strings.HasSuffix(name, ".roll"):
-			script = &s.Roll
-			script.name = "roll"
-			script.Axis = AxisRotary
-			script.Channel = 1
-		case strings.HasSuffix(name, ".pitch"):
-			script = &s.Pitch
-			script.name = "pitch"
-			script.Axis = AxisRotary
-			script.Channel = 2
-		case strings.HasSuffix(name, ".vibrate"):
-			script = &s.Vibrate
-			script.name = "vibrate"
-			script.Axis = AxisVibrate
-			script.Channel = 0
-		case strings.HasSuffix(name, ".pump"):
-			script = &s.Pump
-			script.name = "pump"
-			script.Axis = AxisAlt
-			script.Channel = 2
-		case strings.HasSuffix(name, ".valve"):
-			script = &s.Valve
-			script.name = "valve"
-			script.Axis = AxisVibrate
-			script.Channel = 2
-		default:
-			script = &s.Stroke
-			script.name = "stroke"
-			script.Axis = AxisLinear
-			script.Channel = 0
-		}
-
-		f, err := parse(filepath.Join(dir, dirent.Name()))
+		script, err := NewScript(filepath.Join(dir, dirent.Name()))
 		if err != nil {
-			return errors.Wrap(err, "failed to parse funscript")
+			log.Warn().Err(err).Msgf("failed to load script %s", dirent.Name())
+
+			continue
 		}
 
-		if soft {
-			script.Soft = f
-		} else if hard {
-			script.Hard = f
-		} else if alt {
-			script.Alt = f
+		if existing, ok := s.scripts[script.name]; !ok {
+			s.scripts[script.name] = script
 		} else {
-			script.Default = f
+			if existing.Modifier == script.Modifier {
+				log.Warn().Msgf("script %s already loaded: '%s' vs '%s'", script.name, filepath.Base(existing.path), dirent.Name())
+			} else if script.Modifier == s.preferedModifier {
+				s.scripts[script.name] = script
+				log.Warn().Msgf("overwritting script %s with preferred: '%s' vs '%s'", script.name, filepath.Base(existing.path), dirent.Name())
+			} else {
+				log.Warn().Msgf("preferred script %s already loaded: '%s' vs '%s'", script.name, filepath.Base(existing.path), dirent.Name())
+			}
 		}
 	}
 
@@ -240,10 +208,8 @@ func (s *Scripts) Load(dir string) error {
 }
 
 func (s *Scripts) TCode(p Params) (*TCode, error) {
-	// todo: support multi axis
-
 	if s == nil {
-		return nil, errors.New("no scripts loaded")
+		return nil, fmt.Errorf("no scripts loaded")
 	}
 
 	if p.Max == 0 || p.Max > 1 {
@@ -259,51 +225,17 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 	}
 
 	tcode := NewTCode(p)
-
 	tcode.channels = make([]channel, 0)
 
-	for _, script := range []*Script{
-		&s.Stroke,
-		&s.Surge,
-		&s.Sway,
-		&s.Suck,
-		&s.Twist,
-		&s.Roll,
-		&s.Pitch,
-		&s.Vibrate,
-		&s.Pump,
-		&s.Valve,
-	} {
-		if script == nil {
-			continue
-		}
-
+	for _, script := range s.scripts {
 		ch := channel{}
 		ch.axis = script.Axis
 		ch.channel = script.Channel
 		ch.spline = &interp.NaturalCubic{}
 
-		var data *Funscript
-
-		if s.useSoft && script.Soft != nil {
-			data = script.Soft
-		} else if s.useHard && script.Hard != nil {
-			data = script.Hard
-		} else if s.useAlt && script.Alt != nil {
-			data = script.Alt
-		} else {
-			if script.Default == nil {
-				continue
-			}
-
-			data = script.Default
-		}
-
-		xs, ys := []float64{}, []float64{}
-
 		skip := 0
 
-		for i, action := range data.Actions {
+		for i, action := range script.Actions {
 			if action.Pos == 0 || action.Pos == 100 {
 				skip = i + 1
 				continue
@@ -312,17 +244,30 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 			break
 		}
 
-		for _, action := range data.Actions[skip:] {
+		xs := make([]float64, 0, len(script.Actions)-skip)
+		ys := make([]float64, 0, len(script.Actions)-skip)
+		min, max := 100.0, 0.0
+
+		for _, action := range script.Actions[skip:] {
 			xs = append(xs, float64(action.At))
 
 			pos := float64(action.Pos) / 100.0
-			pos = p.Min + (pos * (p.Max - p.Min))
+
+			if pos < min {
+				min = pos
+			} else if pos > max {
+				max = pos
+			}
+
 			ys = append(ys, pos)
 		}
 
+		ch.min = min
+		ch.max = max
+
 		err := ch.spline.Fit(xs, ys)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to fit spline")
+			return nil, fmt.Errorf("failed to fit spline: %w", err)
 		}
 
 		tcode.channels = append(tcode.channels, ch)
@@ -330,24 +275,10 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 
 	log.Info().Any("loaded", s.Loaded()).Msgf("loaded %d channels", len(tcode.channels))
 
+	err := sendTCode("L00, L10, L20, L30, A10, R00, R10, R20, V00, V10, A20, V20")
+	if err != nil {
+		return tcode, err
+	}
+
 	return tcode, nil
-}
-
-func parse(file string) (*Funscript, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to open funscript")
-	}
-
-	defer f.Close()
-
-	var fs Funscript
-	err = json.NewDecoder(f).Decode(&fs)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to decode funscript")
-	}
-
-	fs.path = file
-
-	return &fs, nil
 }

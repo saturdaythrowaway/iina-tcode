@@ -66,6 +66,8 @@ func main() {
 			}
 		}
 
+		time.Sleep(time.Millisecond)
+
 		err = listen(*port)
 		if err != nil {
 			panic(err)
@@ -76,12 +78,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		fs, err := parse(args[0])
+		script, err := NewScript(args[0])
 		if err != nil {
 			panic(err)
 		}
 
-		err = renderFunscriptHeatmap(*fs, args[1])
+		err = renderFunscriptHeatmap(*script, args[1])
 		if err != nil {
 			panic(err)
 		}

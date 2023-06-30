@@ -103,7 +103,9 @@ func listen(port int) error {
 				return
 			}
 
-			loadedScripts = &Scripts{}
+			loadedScripts = &Scripts{
+				preferedModifier: ScriptModSoft,
+			}
 			err := loadedScripts.Load(dir)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to load scripts")
@@ -136,8 +138,6 @@ func listen(port int) error {
 				}
 			}()
 
-			tcode.messages <- "L00, L10, L20, L30, A10, R00, R10, R20, V00, V10, A20, V20"
-
 		case "set":
 
 		case "render": // output
@@ -150,13 +150,15 @@ func listen(port int) error {
 				return
 			}
 
-			if loadedScripts.Stroke.Default == nil {
-				return
-			}
+			for _, script := range loadedScripts.scripts {
+				if script.name != "stroke" {
+					continue
+				}
 
-			err = renderFunscriptHeatmap(*loadedScripts.Stroke.Default, call.GetParam("output"))
-			if err != nil {
-				panic(err)
+				err = renderFunscriptHeatmap(*script, call.GetParam("output"))
+				if err != nil {
+					panic(err)
+				}
 			}
 
 			respond(w, http.StatusOK, "render")

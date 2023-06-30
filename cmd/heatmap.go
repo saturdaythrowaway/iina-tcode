@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -8,8 +9,6 @@ import (
 	"math"
 	"os"
 	"sort"
-
-	"github.com/pkg/errors"
 )
 
 var heatmap = []color.RGBA{
@@ -68,7 +67,7 @@ func getColor(intensity int) color.RGBA {
 	return getLerpedColor(c1, c2, t)
 }
 
-func renderFunscriptHeatmap(script Funscript, destination string) error {
+func renderFunscriptHeatmap(script Script, destination string) error {
 	var (
 		yWindowSize = 15
 		xWindowSize = 50
@@ -184,14 +183,14 @@ func renderFunscriptHeatmap(script Funscript, destination string) error {
 
 	f, err := os.Create(destination)
 	if err != nil {
-		return errors.Wrap(err, "failed to create heatmap file")
+		return fmt.Errorf("failed to create heatmap file: %w", err)
 	}
 
 	defer f.Close()
 
 	err = png.Encode(f, img)
 	if err != nil {
-		return errors.Wrap(err, "failed to encode image")
+		return fmt.Errorf("failed to encode image: %w", err)
 	}
 
 	return nil

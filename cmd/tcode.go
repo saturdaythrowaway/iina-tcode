@@ -59,9 +59,10 @@ type TCode struct {
 }
 
 type channel struct {
-	axis    Axis
-	channel int
-	spline  *interp.NaturalCubic
+	min, max float64
+	axis     Axis
+	channel  int
+	spline   *interp.NaturalCubic
 }
 
 type Params struct {
@@ -126,8 +127,6 @@ func (t *TCode) Tick() <-chan string {
 			_ = recover() // don't panic if channel is closed
 		}()
 
-		// todo: support multi axis
-
 		last := ""
 
 		t.ticker.Reset(TPS)
@@ -144,6 +143,18 @@ func (t *TCode) Tick() <-chan string {
 				if pos < 0 {
 					pos *= -1
 				}
+
+				min, max := c.min, c.max
+
+				if min < t.params.Min {
+					min = t.params.Min
+				}
+
+				if max > t.params.Max {
+					max = t.params.Max
+				}
+
+				pos = (pos - min) / (max - min)
 
 				msg := TCodeMessage{
 					Axis:    c.axis,
