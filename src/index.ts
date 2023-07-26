@@ -1,6 +1,13 @@
 const { core, console, file, mpv, utils, http, event, overlay, preferences } = iina;
 
 const tcodePlayerVersion = "0.0.3";
+const tcodePlayerCommand = () => {
+  utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, [
+    "--logfile", "/tmp/tcode-player.log", 
+    "--loglevel", "info", 
+    "listen", "&"
+  ]);
+}
 
 if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
   console.log("Downloading tcode-player...");
@@ -16,13 +23,13 @@ if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
   http.download("https://github.com/saturdaythrowaway/iina-tcode/releases/latest/download/tcode-player", `@data/tcode-player-${tcodePlayerVersion}`).finally(
     async () => {
       await utils.exec("chmod", ["a+x", utils.resolvePath(`@data/tcode-player-${tcodePlayerVersion}`)])
-      await utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, ["--logfile", "/tmp/tcode-player.log", "listen", "&"]);
+      await tcodePlayerCommand();
     }
   )
   
 } else {
   console.log("tcode-player already exists")
-  utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, ["--logfile", "/tmp/tcode-player.log", "listen", "&"]);
+  tcodePlayerCommand();
 }
 
 
@@ -40,15 +47,17 @@ function debounce(func, timeout = 300){
 }
 
 const play = debounce(() => {
+  console.log("play")
   rpc.call("play", ["seek", `${core.status.position}s`]);
 })
 
 const pause = debounce(() => {
+  console.log("pause")
   rpc.call("pause", ["seek", `${core.status.position}s`]);
 })
 
-event.on("mpv.unpause", play);
-event.on("mpv.pause", pause);
+// event.on("mpv.unpause", play);
+// event.on("mpv.pause", pause);
 
 
 event.on("iina.file-loaded", () => {
@@ -58,6 +67,7 @@ event.on("iina.file-loaded", () => {
     .join("/");
   if (dir.startsWith("file://")) {
     dir = dir.slice(7);
+    console.log("load")
     rpc.call("load", ["folder", dir]).then((res) => {
       core.osd(res)
     })
@@ -66,8 +76,6 @@ event.on("iina.file-loaded", () => {
     // overlay.simpleMode();
     // overlay.setContent("<img src='file:///tmp/overlay.png' />")
     // overlay.show();
-    
-    rpc.call("play", ["seek", "0ms"]);
   } else {
     console.log(`dir: ${dir}`);
   }
@@ -75,11 +83,21 @@ event.on("iina.file-loaded", () => {
 
 event.on("iina.window-will-close", () => {
   core.osd("closing")
+  console.log("close")
   rpc.call("close", []);
 })
 
 // sync with playback
+let wasPlaying = false;
 setInterval(() => {
+  if (wasPlaying && core.status.paused) {
+    pause();
+    wasPlaying = false;
+  } else if (!wasPlaying && !core.status.paused) {
+    play();
+    wasPlaying = true;
+  }
+
   if (!core.status.position || core.status.position === pos) return;
   rpc.call("seek", ["seek", `${core.status.position}s`]);
   pos = core.status.position;
