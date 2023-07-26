@@ -1,6 +1,6 @@
 const { core, console, file, mpv, utils, http, event, overlay, preferences } = iina;
 
-const tcodePlayerVersion = "0.0.3";
+const tcodePlayerVersion = "0.0.4";
 const tcodePlayerCommand = () => {
   utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, [
     "--logfile", "/tmp/tcode-player.log", 
