@@ -17,6 +17,7 @@ var TPS = time.Duration(time.Second / 10)
 func main() {
 	port := flag.Int("port", 6800, "port to listen on")
 	logfile := flag.String("logfile", "", "log file")
+	loglevel := flag.String("loglevel", "info", "log level")
 	flag.Parse()
 
 	if logfile != nil && *logfile != "" {
@@ -33,9 +34,20 @@ func main() {
 	}
 
 	if os.Getenv("DEBUG") != "" {
+		loglevel = &[]string{"debug"}[0]
+	}
+
+	switch *loglevel {
+	case "debug":
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-	} else {
+	case "info":
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+	default:
+		fmt.Println("error: unknown log level")
 	}
 
 	if len(flag.Args()) == 0 {
