@@ -3,7 +3,7 @@
   "identifier": "com.saturdaythrowaway.iina-tcode",
   "ghRepo": "saturdaythrowaway/iina-tcode",
   "ghVersion": 2,
-  "version": "0.0.3",
+  "version": "0.0.5",
   "description": "TCode Support for IINA",
   "author": {
     "name": "saturdaythrowaway",
@@ -11,7 +11,6 @@
     "url": ""
   },
   "entry": "dist/index.js",
-  "globalEntry": "dist/global.js",
   "permissions": ["show-osd", "file-system", "video-overlay", "network-request"],
   "allowedDomains": ["localhost", "github.com"],
   "preferencesPage": "pref.html",

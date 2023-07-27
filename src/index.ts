@@ -2,6 +2,7 @@ const { core, console, file, mpv, utils, http, event, overlay, preferences } = i
 
 const tcodePlayerVersion = "0.0.4";
 const tcodePlayerCommand = () => {
+  utils.exec("killall", ["tcode-player"])
   utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, [
     "--logfile", "/tmp/tcode-player.log", 
     "--loglevel", "info", 
@@ -48,12 +49,12 @@ function debounce(func, timeout = 300){
 
 const play = debounce(() => {
   console.log("play")
-  rpc.call("play", ["seek", `${core.status.position}s`]);
+  rpc.call("play", ["seek", `${core.status.position || 0}s`]);
 })
 
 const pause = debounce(() => {
   console.log("pause")
-  rpc.call("pause", ["seek", `${core.status.position}s`]);
+  rpc.call("pause", ["seek", `${core.status.position || 0}s`]);
 })
 
 // event.on("mpv.unpause", play);
@@ -99,6 +100,6 @@ setInterval(() => {
   }
 
   if (!core.status.position || core.status.position === pos) return;
-  rpc.call("seek", ["seek", `${core.status.position}s`]);
+  rpc.call("seek", ["seek", `${core.status.position || 0}s`]);
   pos = core.status.position;
 }, 1000/60);
