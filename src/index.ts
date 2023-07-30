@@ -1,13 +1,27 @@
 const { core, console, file, mpv, utils, http, event, overlay, preferences } = iina;
 
-const tcodePlayerVersion = "0.0.4";
+let tcodePlayerVersion = "0.0.4";
 const tcodePlayerCommand = () => {
-  utils.exec("killall", ["tcode-player"])
-  utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, [
-    "--logfile", "/tmp/tcode-player.log", 
-    "--loglevel", "info", 
-    "listen", "&"
-  ]);
+  let loglevel = "info";
+  if (preferences.get("tcode-player-loglevel")) {
+    loglevel = preferences.get("tcode-player-loglevel");
+  }
+
+  if (tcodePlayerVersion === "dev") {
+    loglevel = "debug";
+  }
+  
+  utils.exec("killall", [`tcode-player-${tcodePlayerVersion}`]).then(() => {
+    utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, [
+      "--logfile", "/tmp/tcode-player.log", 
+      "--loglevel", loglevel, 
+      "listen", "&"
+    ]);
+  })
+}
+
+if (file.exists(`@data/tcode-player-dev`)) {
+  tcodePlayerVersion = "dev";
 }
 
 if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
