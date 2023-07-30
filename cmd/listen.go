@@ -61,6 +61,8 @@ func listen(port int) error {
 
 	var params = Params{}
 
+	close := make(chan bool)
+
 	http.HandleFunc("/xmlrpc", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		defer r.Body.Close()
@@ -77,6 +79,7 @@ func listen(port int) error {
 		switch call.MethodName {
 		case "close": // no args
 			tcode.Close()
+			close <- true
 		case "seek": // no args
 			seek := call.GetParam("seek")
 			if seek != "" {
@@ -211,13 +214,17 @@ func listen(port int) error {
 		}
 	})
 
-	err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
-	if err != nil {
-		panic(err)
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+		if err != nil {
+			panic(err)
 
-	}
+		}
 
-	os.Exit(1)
+		os.Exit(1)
+	}()
+
+	<-close
 
 	return nil
 }
