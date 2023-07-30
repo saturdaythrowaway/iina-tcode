@@ -168,3 +168,4 @@ dist/**/*.map
 tcode-player
 *.tcode
 *.iinaplgz
+tcode-player-dev

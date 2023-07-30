@@ -22,11 +22,6 @@
       "distDir": "./dist/",
       "source": "src/index.ts",
       "isLibrary": false
-    },
-    "globalEntry": {
-      "distDir": "./dist/",
-      "source": "src/global.ts",
-      "isLibrary": false
     }
   },
   "dependencies": {
