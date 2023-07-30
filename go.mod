@@ -2,7 +2,10 @@ module github.com/saturdaythrowaway/iina-tcode
 
 go 1.20
 
-require github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+require (
+	github.com/davecgh/go-spew v1.1.1
+	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
+)
 
 require (
 	github.com/mattn/go-colorable v0.1.12 // indirect

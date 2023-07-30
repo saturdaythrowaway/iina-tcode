@@ -20,19 +20,6 @@ func main() {
 	loglevel := flag.String("loglevel", "info", "log level")
 	flag.Parse()
 
-	if logfile != nil && *logfile != "" {
-		f, err := os.OpenFile(*logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println("logging to", *logfile)
-
-		log.Logger = log.Output(f)
-	} else {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	}
-
 	if os.Getenv("DEBUG") != "" {
 		loglevel = &[]string{"debug"}[0]
 	}
@@ -49,6 +36,19 @@ func main() {
 	default:
 		fmt.Println("error: unknown log level")
 	}
+
+	if logfile != nil && *logfile != "" {
+		f, err := os.OpenFile(*logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			panic(err)
+		}
+
+		log.Logger = log.Output(f)
+	} else {
+		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	}
+
+	log.Info().Str("arg0", os.Args[0]).Any("args", os.Args).Str("loglevel", zerolog.GlobalLevel().String()).Msg("starting tcode-player")
 
 	if len(flag.Args()) == 0 {
 		fmt.Println("usage: tcode-player <script>")
