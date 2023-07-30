@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var TPS = time.Duration(time.Second / 10)
+var TPS = time.Duration(time.Second / 60)
 
 func main() {
 	port := flag.Int("port", 6800, "port to listen on")

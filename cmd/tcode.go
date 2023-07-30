@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
-	"gonum.org/v1/gonum/interp"
 )
 
 type Axis string
@@ -58,11 +57,15 @@ type TCode struct {
 	ticker   *time.Ticker
 }
 
+type spline interface {
+	Predict(x float64) float64
+	Fit(x, y []float64) error
+}
+
 type channel struct {
-	min, max float64
-	axis     Axis
-	channel  int
-	spline   *interp.NaturalCubic
+	axis    Axis
+	channel int
+	spline  spline
 }
 
 type Params struct {
@@ -108,7 +111,7 @@ func (t *TCode) Seek(seek time.Duration) {
 		return
 	}
 
-	log.Debug().Dur("seek", seek).Msg("seek")
+	log.Trace().Dur("seek", seek).Msg("seek")
 
 	t.ts = seek
 }
@@ -139,22 +142,18 @@ func (t *TCode) Tick() <-chan string {
 					continue
 				}
 
-				pos := c.spline.Predict(float64(t.ts.Milliseconds()))
-				if pos < 0 {
-					pos *= -1
+				opos := c.spline.Predict(float64(t.ts.Milliseconds())) / 100.0
+
+				if opos < 0.0 {
+					opos = 0.0
 				}
 
-				min, max := c.min, c.max
-
-				if min < t.params.Min {
-					min = t.params.Min
+				if opos > 1.0 {
+					opos = 1.0
 				}
 
-				if max > t.params.Max {
-					max = t.params.Max
-				}
-
-				pos = (pos - min) / (max - min)
+				strokeRange := (t.params.Max - t.params.Min)
+				pos := opos*strokeRange + t.params.Min
 
 				msg := TCodeMessage{
 					Axis:    c.axis,

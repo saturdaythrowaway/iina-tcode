@@ -29,11 +29,11 @@ func connectToDevice() error {
 }
 
 func sendTCode(cmd string) error {
+	cmd = strings.TrimSuffix(cmd, "\n")
+
 	if cmd == "" {
 		return nil
 	}
-
-	cmd = strings.TrimSuffix(cmd, "\n")
 
 	if port != nil {
 		_, err := port.Write([]byte(cmd + "\n"))

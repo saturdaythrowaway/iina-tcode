@@ -231,7 +231,7 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 		ch := channel{}
 		ch.axis = script.Axis
 		ch.channel = script.Channel
-		ch.spline = &interp.NaturalCubic{}
+		ch.spline = &interp.FritschButland{}
 
 		skip := 0
 
@@ -246,24 +246,11 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 
 		xs := make([]float64, 0, len(script.Actions)-skip)
 		ys := make([]float64, 0, len(script.Actions)-skip)
-		min, max := 100.0, 0.0
 
 		for _, action := range script.Actions[skip:] {
 			xs = append(xs, float64(action.At))
-
-			pos := float64(action.Pos) / 100.0
-
-			if pos < min {
-				min = pos
-			} else if pos > max {
-				max = pos
-			}
-
-			ys = append(ys, pos)
+			ys = append(ys, float64(action.Pos))
 		}
-
-		ch.min = min
-		ch.max = max
 
 		err := ch.spline.Fit(xs, ys)
 		if err != nil {
