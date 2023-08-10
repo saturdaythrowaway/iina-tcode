@@ -14,5 +14,12 @@
   "permissions": ["show-osd", "file-system", "video-overlay", "network-request"],
   "allowedDomains": ["localhost", "github.com"],
   "preferencesPage": "pref.html",
-  "preferenceDefaults": {}
+  "preferenceDefaults": {
+    "min": 0.2,
+    "max": 0.7,
+    "offset": 0,
+    "preferAlt": true,
+    "preferSoft": false,
+    "preferHard": false
+  }
 }

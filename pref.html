@@ -38,14 +38,15 @@
   </head>
   <body>
     <div class="pref-section">
-      Range:
-      <div style="margin-top: 2px">
-        <input
-          type="range"
-          data-pref-key="range"
-          style="width: 100%; margin-top: 2px"
-        />
-      </div>
+      <div>Min: <input type="number" data-type="float" data-pref-key="min" /></div>
+      <div>Max: <input type="number" data-type="float" data-pref-key="max" /></div>
+      <div>Offset: <input type="number" data-type="float" data-pref-key="offset" /></div>
+      <div>PreferAlt: <input type="checkbox" data-type="bool" data-pref-key="preferAlt" /></div>
+      <div>PreferSoft: <input type="checkbox" data-type="bool" data-pref-key="preferSoft" /></div>
+      <div>PreferHard: <input type="checkbox" data-type="bool" data-pref-key="preferHard" /></div>
     </div>
   </body>
+  <script>
+    document.querySelector("body").appendChild(document.createElement("pre")).textContent = JSON.stringify(window.iina)
+  </script>
 </html>
