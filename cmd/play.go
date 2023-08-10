@@ -1,12 +1,14 @@
 package main
 
-import "time"
+import (
+	"time"
+)
 
-func play(dir string) error {
+func play(filename string) error {
 	scripts := Scripts{
 		preferedModifier: ScriptModSoft,
 	}
-	err := scripts.Load(dir)
+	err := scripts.Load(filename)
 	if err != nil {
 		return err
 	}

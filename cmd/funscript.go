@@ -155,16 +155,29 @@ func (s *Scripts) Reset() {
 	s.scripts = map[string]*Script{}
 }
 
-func (s *Scripts) Load(dir string) error {
+func (s *Scripts) Load(path string) error {
 	s.Reset()
 
-	if dir == "" {
+	if path == "" {
 		return fmt.Errorf("no folder or dir param")
 	}
 
-	if _, err := os.Stat(dir); err != nil {
+	fi, err := os.Stat(path)
+	if err != nil {
 		return fmt.Errorf("failed to stat dir: %w", err)
 	}
+
+	dir := ""
+	filename := ""
+	if fi.IsDir() {
+		dir = path
+		filename = ""
+	} else {
+		dir = filepath.Dir(path)
+		filename = filepath.Base(path)
+	}
+
+	log.Debug().Str("filename", filename).Msgf("loading scripts from %s", dir)
 
 	dirents, err := os.ReadDir(dir)
 	if err != nil {

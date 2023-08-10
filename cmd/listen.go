@@ -105,21 +105,27 @@ func listen(port int) error {
 		case "version": // no args
 			respond(w, http.StatusOK, "1.0")
 		case "load": // L#,R#,V#,script
-			dir := call.GetParam("dir")
-			if dir == "" {
-				dir = call.GetParam("folder")
+			filename := call.GetParam("filename")
+			dir := call.GetParam("folder")
+
+			path := filename
+			if path == "" {
+				path = dir
 			}
 
-			if dir == "" {
+			if path == "" {
+				log.Error().Msg("no filename or folder param")
 				respond(w, http.StatusInternalServerError, "no folder or dir param")
 
 				return
 			}
 
+			log.Debug().Str("filename", filename).Str("dir", dir).Msg("load")
+
 			loadedScripts = &Scripts{
 				preferedModifier: ScriptModSoft,
 			}
-			err := loadedScripts.Load(dir)
+			err := loadedScripts.Load(path)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to load scripts")
 				respond(w, http.StatusInternalServerError, err.Error())
