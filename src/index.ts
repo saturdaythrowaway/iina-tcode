@@ -1,7 +1,7 @@
 const { core, console, file, mpv, utils, http, event, overlay, preferences } =
   iina;
 
-let tcodePlayerVersion = "0.0.4";
+let tcodePlayerVersion = "0.0.5";
 const tcodePlayerCommand = () => {
   let loglevel = "info";
 
