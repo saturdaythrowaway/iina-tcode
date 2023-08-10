@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -59,7 +60,16 @@ func listen(port int) error {
 	var loadedScripts *Scripts
 	var tcode *TCode
 
-	var params = Params{}
+	var params = Params{
+		Min: 0.15,
+		Max: 0.75,
+
+		Offset: time.Duration(0),
+
+		PreferSoft: false,
+		PreferHard: false,
+		PreferAlt:  false,
+	}
 
 	close := make(chan bool)
 
@@ -140,9 +150,73 @@ func listen(port int) error {
 					}
 				}
 			}()
-
 		case "set":
+			min := call.GetParam("min")
+			if min != "" {
+				f, err := strconv.ParseFloat(min, 64)
+				if err != nil {
+					log.Error().Err(err).Str("min", min).Msg("failed to parse min")
+				} else {
+					params.Min = f
+				}
+			}
 
+			max := call.GetParam("max")
+			if max != "" {
+				f, err := strconv.ParseFloat(max, 64)
+				if err != nil {
+					log.Error().Err(err).Str("max", max).Msg("failed to parse max")
+				} else {
+					params.Max = f
+				}
+			}
+
+			if min > max {
+				params.Min = params.Max
+			}
+
+			offset := call.GetParam("offset")
+			if offset != "" {
+				d, err := time.ParseDuration(offset)
+				if err != nil {
+					log.Error().Err(err).Str("offset", offset).Msg("failed to parse offset")
+				} else {
+					params.Offset = d
+				}
+			}
+
+			alt := call.GetParam("preferAlt")
+			if alt == "true" {
+				params.PreferAlt = true
+			} else if alt == "false" {
+				params.PreferAlt = false
+			}
+
+			soft := call.GetParam("preferSoft")
+			if soft == "true" {
+				params.PreferSoft = true
+			} else if soft == "false" {
+				params.PreferSoft = false
+			}
+
+			hard := call.GetParam("preferHard")
+			if hard == "true" {
+				params.PreferHard = true
+			} else if hard == "false" {
+				params.PreferHard = false
+			}
+
+			res := []string{
+				"set",
+				"min=" + fmt.Sprintf("%f", params.Min),
+				"max=" + fmt.Sprintf("%f", params.Max),
+				"offset=" + params.Offset.String(),
+				"preferAlt=" + fmt.Sprintf("%t", params.PreferAlt),
+				"preferSoft=" + fmt.Sprintf("%t", params.PreferSoft),
+				"preferHard=" + fmt.Sprintf("%t", params.PreferHard),
+			}
+
+			respond(w, http.StatusOK, strings.Join(res, " "))
 		case "render": // output
 			if loadedScripts == nil {
 				_, err = w.Write([]byte("no loaded script"))

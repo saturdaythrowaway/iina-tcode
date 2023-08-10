@@ -12,8 +12,8 @@ func play(dir string) error {
 	}
 
 	tcode, err := scripts.TCode(Params{
-		Min: 0.05,
-		Max: 0.95,
+		Min: 0.15,
+		Max: 0.75,
 	})
 	if err != nil {
 		return err
