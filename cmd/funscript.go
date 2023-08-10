@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -19,8 +20,9 @@ type FunscriptAction struct {
 }
 
 type Script struct {
-	path string // for debugging
-	name string // for debugging
+	path     string // for debugging
+	name     string // for debugging
+	filename string // for debugging
 
 	Axis     Axis      `json:"-"`
 	Channel  int       `json:"-"`
@@ -30,6 +32,14 @@ type Script struct {
 	Inverted bool              `json:"inverted"`
 	Range    int               `json:"range"`
 	Version  string            `json:"version"`
+}
+
+func (s Script) String() string {
+	if s.Modifier != ScriptModDefault {
+		return fmt.Sprintf("%s (%s): %s", s.name, s.Modifier, s.filename)
+	}
+
+	return fmt.Sprintf("%s: %s", s.name, s.filename)
 }
 
 type Scripts struct {
@@ -51,6 +61,8 @@ func NewScript(path string) (*Script, error) {
 	case strings.HasSuffix(name, ".alt"):
 		script.Modifier = ScriptModAlt
 	}
+
+	script.filename = filepath.Base(name)
 
 	if script.Modifier != ScriptModDefault {
 		name = strings.TrimSuffix(name, "."+script.Modifier.String())
@@ -184,6 +196,8 @@ func (s *Scripts) Load(path string) error {
 		return fmt.Errorf("failed to read dir: %w", err)
 	}
 
+	availableScripts := map[string][]*Script{}
+
 	// todo: handle script collisions
 	for _, dirent := range dirents {
 		if dirent.IsDir() {
@@ -201,21 +215,60 @@ func (s *Scripts) Load(path string) error {
 			continue
 		}
 
-		if existing, ok := s.scripts[script.name]; !ok {
-			s.scripts[script.name] = script
+		fmt.Println(len(script.Actions))
+
+		if _, ok := availableScripts[script.name]; !ok {
+			availableScripts[script.name] = []*Script{script}
 		} else {
-			if existing.Modifier == script.Modifier {
-				log.Warn().Msgf("script %s already loaded: '%s' vs '%s'", script.name, filepath.Base(existing.path), dirent.Name())
-			} else if script.Modifier == s.preferedModifier {
-				s.scripts[script.name] = script
-				log.Warn().Msgf("overwritting script %s with preferred: '%s' vs '%s'", script.name, filepath.Base(existing.path), dirent.Name())
-			} else {
-				log.Warn().Msgf("preferred script %s already loaded: '%s' vs '%s'", script.name, filepath.Base(existing.path), dirent.Name())
-			}
+			availableScripts[script.name] = append(availableScripts[script.name], script)
 		}
 	}
 
-	log.Info().Msgf("loaded %s", dir)
+	for _, axis := range availableScripts {
+		if len(axis) == 0 {
+			continue
+		}
+
+		preferedScripts := []*Script{}
+		scripts := []*Script{}
+
+		if len(axis) > 1 {
+			for _, script := range axis {
+				if s.preferedModifier == script.Modifier {
+					preferedScripts = append(preferedScripts, script)
+				} else {
+					scripts = append(scripts, script)
+				}
+			}
+
+			scripts = append(preferedScripts, scripts...)
+
+			if filename != "" {
+				for _, script := range scripts {
+					if strings.HasPrefix(filename, script.filename) {
+						scripts = []*Script{script}
+
+						break
+					}
+				}
+			}
+		} else {
+			scripts = axis
+		}
+
+		s.scripts[scripts[0].name] = scripts[0]
+	}
+
+	if len(s.scripts) == 0 {
+		return fmt.Errorf("no scripts loaded")
+	}
+
+	scripts := []string{}
+	for _, script := range s.scripts {
+		scripts = append(scripts, script.String())
+	}
+
+	log.Info().Strs("scripts", scripts).Msgf("loaded %s", dir)
 
 	return nil
 }
@@ -260,9 +313,23 @@ func (s *Scripts) TCode(p Params) (*TCode, error) {
 		xs := make([]float64, 0, len(script.Actions)-skip)
 		ys := make([]float64, 0, len(script.Actions)-skip)
 
+		sort.Slice(script.Actions, func(i, j int) bool {
+			return script.Actions[i].At < script.Actions[j].At
+		})
+
 		for _, action := range script.Actions[skip:] {
 			xs = append(xs, float64(action.At))
 			ys = append(ys, float64(action.Pos))
+		}
+
+		for i := 0; i < len(xs)-1; i++ {
+			if xs[i+1] == xs[i] {
+				y := (ys[i] + ys[i+1]) / 2
+				ys = append(ys[:i], ys[i+1:]...)
+				xs = append(xs[:i], xs[i+1:]...)
+				ys[i] = y
+				i--
+			}
 		}
 
 		err := ch.spline.Fit(xs, ys)
