@@ -173,7 +173,7 @@ func (t *TCode) Tick() <-chan string {
 			msg := strings.Join(messages, ", ")
 
 			if msg == last {
-				log.Debug().Str("tcode", msg).Msg("skip duplicate")
+				log.Trace().Str("tcode", msg).Msg("skip duplicate")
 				continue
 			}
 
