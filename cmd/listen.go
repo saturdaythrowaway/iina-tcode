@@ -133,6 +133,8 @@ func listen(port int) error {
 				return
 			}
 
+			log.Debug().Strs("scripts", loadedScripts.Loaded()).Msg("loaded scripts")
+
 			respond(w, http.StatusOK, fmt.Sprintf("loaded %v", loadedScripts.Loaded()))
 
 			if tcode != nil {
@@ -157,12 +159,20 @@ func listen(port int) error {
 				}
 			}()
 		case "set":
+			l := log.Debug()
+			change := false
+
 			min := call.GetParam("min")
 			if min != "" {
 				f, err := strconv.ParseFloat(min, 64)
 				if err != nil {
 					log.Error().Err(err).Str("min", min).Msg("failed to parse min")
 				} else {
+					if f != params.Min {
+						l.Float64("min", f)
+						change = true
+					}
+
 					params.Min = f
 				}
 			}
@@ -173,12 +183,17 @@ func listen(port int) error {
 				if err != nil {
 					log.Error().Err(err).Str("max", max).Msg("failed to parse max")
 				} else {
+					if f != params.Max {
+						l.Float64("max", f)
+						change = true
+					}
+
 					params.Max = f
 				}
 			}
 
 			if min > max {
-				params.Min = params.Max
+				params.Max, params.Min = params.Min, params.Max
 			}
 
 			offset := call.GetParam("offset")
@@ -187,42 +202,71 @@ func listen(port int) error {
 				if err != nil {
 					log.Error().Err(err).Str("offset", offset).Msg("failed to parse offset")
 				} else {
+					if d != params.Offset {
+						l.Dur("offset", d)
+						change = true
+					}
+
 					params.Offset = d
 				}
 			}
 
 			alt := call.GetParam("preferAlt")
 			if alt == "true" {
+				if !params.PreferAlt {
+					l.Bool("preferAlt", true)
+					change = true
+				}
+
 				params.PreferAlt = true
 			} else if alt == "false" {
+				if params.PreferAlt {
+					l.Bool("preferAlt", false)
+					change = true
+				}
+
 				params.PreferAlt = false
 			}
 
 			soft := call.GetParam("preferSoft")
 			if soft == "true" {
+				if !params.PreferSoft {
+					l.Bool("preferSoft", true)
+					change = true
+				}
+
 				params.PreferSoft = true
 			} else if soft == "false" {
+				if params.PreferSoft {
+					l.Bool("preferSoft", false)
+					change = true
+				}
+
 				params.PreferSoft = false
 			}
 
 			hard := call.GetParam("preferHard")
 			if hard == "true" {
+				if !params.PreferHard {
+					l.Bool("preferHard", true)
+					change = true
+				}
+
 				params.PreferHard = true
 			} else if hard == "false" {
+				if params.PreferHard {
+					l.Bool("preferHard", false)
+					change = true
+				}
+
 				params.PreferHard = false
 			}
 
-			res := []string{
-				"set",
-				"min=" + fmt.Sprintf("%f", params.Min),
-				"max=" + fmt.Sprintf("%f", params.Max),
-				"offset=" + params.Offset.String(),
-				"preferAlt=" + fmt.Sprintf("%t", params.PreferAlt),
-				"preferSoft=" + fmt.Sprintf("%t", params.PreferSoft),
-				"preferHard=" + fmt.Sprintf("%t", params.PreferHard),
+			if change {
+				l.Msg("set params")
 			}
 
-			respond(w, http.StatusOK, strings.Join(res, " "))
+			respond(w, http.StatusOK, "")
 		case "render": // output
 			if loadedScripts == nil {
 				_, err = w.Write([]byte("no loaded script"))
