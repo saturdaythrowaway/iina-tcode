@@ -228,7 +228,6 @@ func (t *TCode) Reset() {
 
 	t.channels = nil
 	t.messages = nil
-
 }
 
 func (t *TCode) Close() {

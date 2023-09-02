@@ -14,6 +14,8 @@ import (
 
 // https://github.com/multiaxis/tcode-spec
 
+const defaultAxis = "stroke"
+
 var axisMap = map[string]Script{
 	"stroke":  {Axis: AxisLinear, Channel: 0},
 	"surge":   {Axis: AxisLinear, Channel: 1},
@@ -85,7 +87,7 @@ func NewScript(path string) (*Script, error) {
 	if ext != "" {
 		ext = ext[1:]
 	} else {
-		ext = "stroke"
+		ext = defaultAxis
 	}
 
 	if s, ok := axisMap[ext]; ok {
@@ -95,8 +97,8 @@ func NewScript(path string) (*Script, error) {
 	} else {
 		log.Warn().Str("ext", ext).Msgf("unknown axis")
 
-		s := axisMap["stroke"]
-		script.name = "stroke"
+		s := axisMap[defaultAxis]
+		script.name = defaultAxis
 		script.Axis = s.Axis
 		script.Channel = s.Channel
 	}
