@@ -30,12 +30,14 @@ func (tm TCodeMessage) String() string {
 		return ""
 	}
 
-	pos := ""
-	if tm.Value == 1.0 {
-		pos = "99999"
-	} else if tm.Value == 0.0 {
+	var pos string
+
+	switch tm.Value {
+	case 0.0:
 		pos = "00000"
-	} else {
+	case 1.0:
+		pos = "99999"
+	default:
 		pos = fmt.Sprintf("%f", tm.Value)[2:]
 		if len(pos) > 5 {
 			pos = pos[:5]
@@ -121,7 +123,7 @@ func (t *TCode) Tick() <-chan string {
 		return nil
 	}
 
-	var messages = make(chan string)
+	messages := make(chan string)
 
 	t.messages = messages
 
@@ -174,6 +176,7 @@ func (t *TCode) Tick() <-chan string {
 
 			if msg == last {
 				log.Trace().Str("tcode", msg).Msg("skip duplicate")
+
 				continue
 			}
 

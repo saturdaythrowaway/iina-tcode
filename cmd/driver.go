@@ -42,7 +42,7 @@ func sendTCode(cmd string) error {
 		}
 	}
 
-	log.Debug().Str("tcode", cmd).Msg("tcode")
+	log.Trace().Str("tcode", cmd).Msg("tcode")
 
 	return nil
 }

@@ -49,7 +49,7 @@ type Scripts struct {
 }
 
 func NewScript(path string) (*Script, error) {
-	var name = strings.TrimSuffix(path, ".funscript")
+	name := strings.TrimSuffix(path, ".funscript")
 	script := Script{}
 	script.path = path
 
@@ -142,6 +142,8 @@ func (s ScriptMod) String() string {
 		return "soft"
 	case ScriptModHard:
 		return "hard"
+	case ScriptModDefault:
+		return ""
 	default:
 		return ""
 	}
@@ -179,8 +181,11 @@ func (s *Scripts) Load(path string) error {
 		return fmt.Errorf("failed to stat dir: %w", err)
 	}
 
-	dir := ""
-	filename := ""
+	var (
+		dir      string
+		filename string
+	)
+
 	if fi.IsDir() {
 		dir = path
 		filename = ""
@@ -214,8 +219,6 @@ func (s *Scripts) Load(path string) error {
 
 			continue
 		}
-
-		fmt.Println(len(script.Actions))
 
 		if _, ok := availableScripts[script.name]; !ok {
 			availableScripts[script.name] = []*Script{script}

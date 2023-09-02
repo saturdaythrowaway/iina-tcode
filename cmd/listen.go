@@ -42,7 +42,7 @@ func (m MethodCall) GetParam(key string) string {
 }
 
 func respond(w http.ResponseWriter, status int, msg string) {
-	var template = `<?xml version="1.0"?>
+	template := `<?xml version="1.0"?>
 	<methodResponse>
 	   <params>
 		  <param>
@@ -50,28 +50,24 @@ func respond(w http.ResponseWriter, status int, msg string) {
 		  </param>
 	   </params>
 	</methodResponse>`
+
 	w.WriteHeader(status)
+
 	_, err := w.Write([]byte(fmt.Sprintf(template, msg)))
 	if err != nil {
 		panic(err)
 	}
 }
-func listen(port int) error {
-	var loadedScripts *Scripts
-	var tcode *TCode
 
-	var params = Params{
-		Min: 0.15,
-		Max: 0.75,
+func listen(port int) {
+	var (
+		loadedScripts *Scripts
+		tcode         *TCode
+	)
 
-		Offset: time.Duration(0),
+	closeChan := make(chan bool)
 
-		PreferSoft: false,
-		PreferHard: false,
-		PreferAlt:  false,
-	}
-
-	close := make(chan bool)
+	// todo: add jsonrpc & grpc (?)
 
 	http.HandleFunc("/xmlrpc", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -89,7 +85,7 @@ func listen(port int) error {
 		switch call.MethodName {
 		case "close": // no args
 			tcode.Close()
-			close <- true
+			closeChan <- true
 		case "seek": // no args
 			seek := call.GetParam("seek")
 			if seek != "" {
@@ -141,7 +137,7 @@ func listen(port int) error {
 				tcode.Close()
 			}
 
-			tcode, err = loadedScripts.TCode(params)
+			tcode, err = loadedScripts.TCode()
 			if err != nil {
 				panic(err)
 			}
@@ -211,15 +207,20 @@ func listen(port int) error {
 				}
 			}
 
+			const (
+				trueString  = "true"
+				falseString = "false"
+			)
+
 			alt := call.GetParam("preferAlt")
-			if alt == "true" {
+			if alt == trueString {
 				if !params.PreferAlt {
 					l.Bool("preferAlt", true)
 					change = true
 				}
 
 				params.PreferAlt = true
-			} else if alt == "false" {
+			} else if alt == falseString {
 				if params.PreferAlt {
 					l.Bool("preferAlt", false)
 					change = true
@@ -229,14 +230,14 @@ func listen(port int) error {
 			}
 
 			soft := call.GetParam("preferSoft")
-			if soft == "true" {
+			if soft == trueString {
 				if !params.PreferSoft {
 					l.Bool("preferSoft", true)
 					change = true
 				}
 
 				params.PreferSoft = true
-			} else if soft == "false" {
+			} else if soft == falseString {
 				if params.PreferSoft {
 					l.Bool("preferSoft", false)
 					change = true
@@ -246,14 +247,14 @@ func listen(port int) error {
 			}
 
 			hard := call.GetParam("preferHard")
-			if hard == "true" {
+			if hard == trueString {
 				if !params.PreferHard {
 					l.Bool("preferHard", true)
 					change = true
 				}
 
 				params.PreferHard = true
-			} else if hard == "false" {
+			} else if hard == falseString {
 				if params.PreferHard {
 					l.Bool("preferHard", false)
 					change = true
@@ -342,13 +343,10 @@ func listen(port int) error {
 		err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
 		if err != nil {
 			panic(err)
-
 		}
 
 		os.Exit(1)
 	}()
 
-	<-close
-
-	return nil
+	<-closeChan
 }

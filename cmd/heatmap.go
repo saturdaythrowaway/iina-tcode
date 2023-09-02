@@ -85,6 +85,7 @@ func renderFunscriptHeatmap(script Script, destination string) error {
 	background := color.RGBA{0, 0, 0, 0}
 	img := image.NewRGBA(image.Rect(0, 0, int(width), int(height)))
 	draw.Draw(img, img.Bounds(), &image.Uniform{background}, image.Point{}, draw.Src)
+
 	msToX := float64(width) / float64(script.Actions[len(script.Actions)-1].At)
 
 	intensityList := make([]int, 0)
@@ -122,6 +123,7 @@ func renderFunscriptHeatmap(script Script, destination string) error {
 		for _, n := range intensityList {
 			averageIntensity += n
 		}
+
 		averageIntensity /= len(intensityList)
 
 		averageColor := getColor(averageIntensity)
@@ -139,12 +141,14 @@ func renderFunscriptHeatmap(script Script, destination string) error {
 		for _, n := range bottomHalf {
 			averageBottom += n
 		}
+
 		averageBottom /= len(bottomHalf)
 
 		averageTop := 0
 		for _, n := range topHalf {
 			averageTop += n
 		}
+
 		averageTop /= len(topHalf)
 
 		yMaxList = append(yMaxList, action.Pos)

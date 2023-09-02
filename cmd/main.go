@@ -15,6 +15,8 @@ import (
 var TPS = time.Duration(time.Second / 60)
 
 func main() {
+	logWriter := os.Stderr
+
 	port := flag.Int("port", 6800, "port to listen on")
 	logfile := flag.String("logfile", "", "log file")
 	loglevel := flag.String("loglevel", "info", "log level")
@@ -48,7 +50,11 @@ func main() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	log.Info().Str("arg0", os.Args[0]).Any("args", os.Args).Str("loglevel", zerolog.GlobalLevel().String()).Msg("starting tcode-player")
+	log.Info().
+		Str("arg0", os.Args[0]).
+		Any("args", os.Args).
+		Str("loglevel", zerolog.GlobalLevel().String()).
+		Msg("starting tcode-player")
 
 	if len(flag.Args()) == 0 {
 		fmt.Println("usage: tcode-player <script>")
@@ -66,8 +72,9 @@ func main() {
 		}
 
 		buf, _ := exec.Command("lsof", fmt.Sprintf("-i:%d", *port), "-sTCP:LISTEN", "-tPn").Output()
+
 		pid := strings.TrimSuffix(string(buf), "\n")
-		if string(pid) != "" {
+		if pid != "" {
 			cmd := exec.Command("kill", "-9", pid)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
