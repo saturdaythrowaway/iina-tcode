@@ -14,6 +14,19 @@ import (
 
 // https://github.com/multiaxis/tcode-spec
 
+var axisMap = map[string]Script{
+	"stroke":  {Axis: AxisLinear, Channel: 0},
+	"surge":   {Axis: AxisLinear, Channel: 1},
+	"sway":    {Axis: AxisLinear, Channel: 2},
+	"twist":   {Axis: AxisRotary, Channel: 0},
+	"roll":    {Axis: AxisRotary, Channel: 1},
+	"pitch":   {Axis: AxisRotary, Channel: 2},
+	"vibrate": {Axis: AxisVibrate, Channel: 0},
+	"suck":    {Axis: AxisAlt, Channel: 1},
+	"pump":    {Axis: AxisAlt, Channel: 2},
+	"valve":   {Axis: AxisVibrate, Channel: 2},
+}
+
 type FunscriptAction struct {
 	At  int `json:"at"`
 	Pos int `json:"pos"`
@@ -64,52 +77,25 @@ func NewScript(path string) (*Script, error) {
 
 	script.filename = filepath.Base(name)
 
+	ext := filepath.Ext(script.filename)
 	if script.Modifier != ScriptModDefault {
-		name = strings.TrimSuffix(name, "."+script.Modifier.String())
+		ext = strings.TrimSuffix(ext, "."+script.Modifier.String())
 	}
 
-	switch {
-	case strings.HasSuffix(name, ".surge"):
-		script.name = "surge"
-		script.Axis = AxisLinear
-		script.Channel = 1
-	case strings.HasSuffix(name, ".sway"):
-		script.name = "sway"
-		script.Axis = AxisLinear
-		script.Channel = 2
-	case strings.HasSuffix(name, ".stroke"):
-		script.name = "stroke"
-		script.Axis = AxisLinear
-		script.Channel = 0
-	case strings.HasSuffix(name, ".suck"):
-		script.name = "suck"
-		script.Axis = AxisAlt
-		script.Channel = 1
-	case strings.HasSuffix(name, ".twist"):
-		script.name = "twist"
-		script.Axis = AxisRotary
-		script.Channel = 0
-	case strings.HasSuffix(name, ".roll"):
-		script.name = "roll"
-		script.Axis = AxisRotary
-		script.Channel = 1
-	case strings.HasSuffix(name, ".pitch"):
-		script.name = "pitch"
-		script.Axis = AxisRotary
-		script.Channel = 2
-	case strings.HasSuffix(name, ".vibrate"):
-		script.name = "vibrate"
-		script.Axis = AxisVibrate
-		script.Channel = 0
-	case strings.HasSuffix(name, ".pump"):
-		script.name = "pump"
-		script.Axis = AxisAlt
-		script.Channel = 2
-	case strings.HasSuffix(name, ".valve"):
-		script.name = "valve"
-		script.Axis = AxisVibrate
-		script.Channel = 2
-	default:
+	if ext != "" {
+		ext = ext[1:]
+	} else {
+		ext = "stroke"
+	}
+
+	if s, ok := axisMap[ext]; ok {
+		script.name = ext
+		script.Axis = s.Axis
+		script.Channel = s.Channel
+	} else {
+		log.Warn().Str("ext", ext).Msgf("unknown axis")
+
+		s := axisMap["stroke"]
 		script.name = "stroke"
 		script.Axis = AxisLinear
 		script.Channel = 0
