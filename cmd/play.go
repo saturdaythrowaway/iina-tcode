@@ -14,10 +14,7 @@ func play(filename string) error {
 		return err
 	}
 
-	tcode, err := scripts.TCode(Params{
-		Min: 0.15,
-		Max: 0.75,
-	})
+	tcode, err := scripts.TCode()
 	if err != nil {
 		return err
 	}

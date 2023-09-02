@@ -51,8 +51,6 @@ func (tm TCodeMessage) String() string {
 type TCode struct {
 	channels []channel
 
-	params Params
-
 	messages chan string
 	ts       time.Duration
 	ticker   *time.Ticker
@@ -69,17 +67,7 @@ type channel struct {
 	spline  spline
 }
 
-type Params struct {
-	Min, Max float64
-
-	Offset time.Duration
-
-	PreferSoft bool
-	PreferHard bool
-	PreferAlt  bool
-}
-
-func NewTCode(p Params) *TCode {
+func NewTCode() *TCode {
 	return &TCode{
 		ts:     0,
 		ticker: time.NewTicker(TPS),
@@ -155,8 +143,20 @@ func (t *TCode) Tick() <-chan string {
 					opos = 1.0
 				}
 
-				strokeRange := (t.params.Max - t.params.Min)
-				pos := opos*strokeRange + t.params.Min
+				if params.Max == 0 || params.Max > 1 {
+					params.Max = 1
+				}
+
+				if params.Min < 0 || params.Min == 1 {
+					params.Min = 0
+				}
+
+				if params.Min > params.Max {
+					params.Min = params.Max
+				}
+
+				strokeRange := (params.Max - params.Min)
+				pos := opos*strokeRange + params.Min
 
 				msg := TCodeMessage{
 					Axis:    c.axis,

@@ -262,24 +262,12 @@ func (s *Scripts) Load(path string) error {
 	return nil
 }
 
-func (s *Scripts) TCode(p Params) (*TCode, error) {
+func (s *Scripts) TCode() (*TCode, error) {
 	if s == nil {
 		return nil, fmt.Errorf("no scripts loaded")
 	}
 
-	if p.Max == 0 || p.Max > 1 {
-		p.Max = 1
-	}
-
-	if p.Min < 0 {
-		p.Min = 0
-	}
-
-	if p.Min > p.Max {
-		p.Min = p.Max
-	}
-
-	tcode := NewTCode(p)
+	tcode := NewTCode()
 	tcode.channels = make([]channel, 0)
 
 	for _, script := range s.scripts {
