@@ -276,25 +276,14 @@ func (s *Scripts) TCode() (*TCode, error) {
 		ch.channel = script.Channel
 		ch.spline = &interp.FritschButland{}
 
-		skip := 0
-
-		for i, action := range script.Actions {
-			if action.Pos == 0 || action.Pos == 100 {
-				skip = i + 1
-				continue
-			}
-
-			break
-		}
-
-		xs := make([]float64, 0, len(script.Actions)-skip)
-		ys := make([]float64, 0, len(script.Actions)-skip)
+		xs := make([]float64, 0, len(script.Actions))
+		ys := make([]float64, 0, len(script.Actions))
 
 		sort.Slice(script.Actions, func(i, j int) bool {
 			return script.Actions[i].At < script.Actions[j].At
 		})
 
-		for _, action := range script.Actions[skip:] {
+		for _, action := range script.Actions {
 			xs = append(xs, float64(action.At))
 			ys = append(ys, float64(action.Pos))
 		}
@@ -307,6 +296,12 @@ func (s *Scripts) TCode() (*TCode, error) {
 				ys[i] = y
 				i--
 			}
+		}
+
+		if len(xs) == 0 || len(ys) == 0 {
+			log.Warn().Msgf("skipping %s: no actions", script)
+
+			continue
 		}
 
 		err := ch.spline.Fit(xs, ys)
