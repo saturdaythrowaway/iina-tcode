@@ -19,7 +19,6 @@ const (
 )
 
 type TCodeMessage struct {
-	At      int
 	Axis    Axis
 	Channel int
 	Value   float64
@@ -92,6 +91,8 @@ func (t *TCode) Pause() {
 	if t == nil {
 		return
 	}
+
+	t.Zero()
 
 	log.Debug().Msg("pause")
 
@@ -188,7 +189,36 @@ func (t *TCode) Tick() <-chan string {
 	return messages
 }
 
-func (t *TCode) Close() {
+func (t *TCode) setValue(value float64) {
+	if t == nil {
+		return
+	}
+
+	for _, c := range t.channels {
+		err := sendTCode((TCodeMessage{
+			Axis:    c.axis,
+			Channel: c.channel,
+			Value:   value,
+		}).String())
+		if err != nil {
+			log.Error().Err(err).Msg("failed to send tcode")
+		}
+	}
+}
+
+func (t *TCode) Zero() {
+	t.setValue(0.0)
+}
+
+func (t *TCode) Center() {
+	t.setValue(0.5)
+}
+
+func (t *TCode) Max() {
+	t.setValue(1.0)
+}
+
+func (t *TCode) Reset() {
 	defer func() {
 		_ = recover() // don't panic if channel is closed
 	}()
@@ -200,5 +230,14 @@ func (t *TCode) Close() {
 	t.channels = nil
 	t.messages = nil
 
+}
+
+func (t *TCode) Close() {
+	t.Reset()
+
 	log.Info().Msg("closing")
+
+	t.Max()
+	t.Zero()
+	t.Center()
 }

@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var TPS = time.Duration(time.Second / 60)
+var TPS = time.Second / 60
 
 func main() {
 	logWriter := os.Stderr
@@ -93,10 +93,7 @@ func main() {
 
 		time.Sleep(time.Millisecond)
 
-		err = listen(*port)
-		if err != nil {
-			panic(err)
-		}
+		listen(*port)
 	case "render":
 		if len(args) < 2 {
 			fmt.Println("usage: tcode-player render <script> <output>")

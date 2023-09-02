@@ -134,7 +134,7 @@ func listen(port int) {
 			respond(w, http.StatusOK, fmt.Sprintf("loaded %v", loadedScripts.Loaded()))
 
 			if tcode != nil {
-				tcode.Close()
+				tcode.Reset()
 			}
 
 			tcode, err = loadedScripts.TCode()

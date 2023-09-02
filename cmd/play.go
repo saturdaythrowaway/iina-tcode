@@ -8,6 +8,7 @@ func play(filename string) error {
 	scripts := Scripts{
 		preferedModifier: ScriptModSoft,
 	}
+
 	err := scripts.Load(filename)
 	if err != nil {
 		return err
