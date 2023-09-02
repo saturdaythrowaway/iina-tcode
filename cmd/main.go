@@ -20,6 +20,7 @@ func main() {
 	port := flag.Int("port", 6800, "port to listen on")
 	logfile := flag.String("logfile", "", "log file")
 	loglevel := flag.String("loglevel", "info", "log level")
+	logformat := flag.String("logformat", "text", "log format")
 	flag.Parse()
 
 	if os.Getenv("DEBUG") != "" {
@@ -39,15 +40,20 @@ func main() {
 		fmt.Println("error: unknown log level")
 	}
 
-	if logfile != nil && *logfile != "" {
-		f, err := os.OpenFile(*logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if *logfile != "" {
+		f, err := os.OpenFile(*logfile, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
 		if err != nil {
 			panic(err)
 		}
 
-		log.Logger = log.Output(f)
-	} else {
-		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+		logWriter = f
+	}
+
+	switch *logformat {
+	case "json":
+		log.Logger = log.Logger.With().Caller().Logger().Output(logWriter)
+	case "text":
+		log.Logger = log.Logger.With().Caller().Logger().Output(zerolog.ConsoleWriter{Out: logWriter})
 	}
 
 	log.Info().
