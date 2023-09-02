@@ -11,7 +11,7 @@ const {
   preferences,
 } = iina;
 
-let tcodePlayerVersion = "0.0.5";
+let tcodePlayerVersion = "0.0.6";
 const tcodePlayerCommand = async () => {
   let loglevel = "info";
 
