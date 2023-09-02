@@ -1,15 +1,25 @@
-const { core, console, file, mpv, utils, http, event, overlay, preferences } =
-  iina;
+const {
+  core,
+  console,
+  file,
+  mpv,
+  utils,
+  http,
+  event,
+  overlay,
+  standaloneWindow,
+  preferences,
+} = iina;
 
 let tcodePlayerVersion = "0.0.5";
-const tcodePlayerCommand = () => {
+const tcodePlayerCommand = async () => {
   let loglevel = "info";
 
   if (tcodePlayerVersion === "dev") {
     loglevel = "debug";
   }
 
-  utils.exec("killall", [`tcode-player-${tcodePlayerVersion}`]).then(() => {
+  await utils.exec("killall", [`tcode-player-${tcodePlayerVersion}`]).then(() => {
     utils.exec(`@data/tcode-player-${tcodePlayerVersion}`, [
       "--logfile",
       "/tmp/tcode-player.log",
@@ -23,9 +33,9 @@ const tcodePlayerCommand = () => {
 
 if (file.exists(`@data/tcode-player-dev`)) {
   tcodePlayerVersion = "dev";
-}
+  tcodePlayerCommand();
 
-if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
+} else if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
   console.log("Downloading tcode-player...");
   let dir = utils.resolvePath("@data/");
   file
@@ -48,11 +58,12 @@ if (!file.exists(`@data/tcode-player-${tcodePlayerVersion}`)) {
         "a+x",
         utils.resolvePath(`@data/tcode-player-${tcodePlayerVersion}`),
       ]);
-      await tcodePlayerCommand();
     });
-} else {
-  console.log("tcode-player already exists");
+  
   tcodePlayerCommand();
+} else {
+  tcodePlayerCommand();
+  console.log("tcode-player already exists");
 }
 
 let rpc = http.xmlrpc("http://localhost:6800/xmlrpc");
@@ -83,24 +94,31 @@ const pause = debounce(() => {
 // event.on("mpv.unpause", play);
 // event.on("mpv.pause", pause);
 
-event.on("iina.file-loaded", () => {
-  let path = decodeURIComponent(core.getRecentDocuments()[0].url)
-  console.log(path)
+// event.on("iina.window-loaded", () => {
+//   overlay.simpleMode();
+//   overlay.setContent(`<img src="file:///tmp/overlay.png">`);
+//   overlay.setStyle(`p { color: red }; img {
+//     width: 100%;
+//     height: 100%;
+//     object-fit: contain;
+//   }`);
+//   overlay.show();
+// });
+
+event.on("iina.file-loaded", async () => {
+  let path = decodeURIComponent(core.getRecentDocuments()[0].url);
+  console.log(path);
 
   if (path.startsWith("file://")) {
     path = path.slice(7);
     console.log("load");
     rpc.call("load", ["filename", path]).then((res) => {
       core.osd(res);
-
-      console.log(res)
-
-      // overlay.loadFile("/tmp/overlay.png");
-      // overlay.show();
-      // rpc.call("render", ["output", "/tmp/overlay.png"]).finally(() => {
-      //   // overlay.setContent("<p>test</p>")
-      //   // overlay.show();
-      // })
+      console.log(res);
+      
+      // rpc.call("render", ["output", "/tmp/overlay.png"]).then((_) => {
+      //   overlay.setContent(`<p>Rendering...</p> <img src="file:///tmp/overlay.png" /> <p>${path}</p>`);
+      // });
     });
   }
 });
@@ -124,14 +142,23 @@ setInterval(() => {
 
   if (!core.status.position || core.status.position === pos) return;
 
-  rpc.call("set", [
-    `min`, `${preferences.get("min")}`,
-    `max`, `${preferences.get("max")}`,
-    `offset`, `${preferences.get("offset")}ms`,
-    `preferAlt`, `${preferences.get("preferAlt") ? "true" : "false"}`,
-    `preferSoft`, `${preferences.get("preferSoft") ? "true" : "false"}`,
-    `preferHard`, `${preferences.get("preferHard") ? "true" : "false"}`,
-  ]);
   rpc.call("seek", ["seek", `${core.status.position || 0}s`]);
   pos = core.status.position;
 }, 1000 / 60);
+
+setInterval(() => {
+  rpc.call("set", [
+    `min`,
+    `${preferences.get("min")}`,
+    `max`,
+    `${preferences.get("max")}`,
+    `offset`,
+    `${preferences.get("offset")}ms`,
+    `preferAlt`,
+    `${preferences.get("preferAlt") ? "true" : "false"}`,
+    `preferSoft`,
+    `${preferences.get("preferSoft") ? "true" : "false"}`,
+    `preferHard`,
+    `${preferences.get("preferHard") ? "true" : "false"}`,
+  ]);
+}, 2000);

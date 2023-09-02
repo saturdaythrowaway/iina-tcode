@@ -71,7 +71,6 @@ func NewTCode() *TCode {
 	return &TCode{
 		ts:     0,
 		ticker: time.NewTicker(TPS),
-		params: p,
 	}
 }
 

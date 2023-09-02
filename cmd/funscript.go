@@ -97,8 +97,8 @@ func NewScript(path string) (*Script, error) {
 
 		s := axisMap["stroke"]
 		script.name = "stroke"
-		script.Axis = AxisLinear
-		script.Channel = 0
+		script.Axis = s.Axis
+		script.Channel = s.Channel
 	}
 
 	f, err := os.Open(script.path)
