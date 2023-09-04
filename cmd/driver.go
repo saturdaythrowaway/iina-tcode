@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"strings"
+	"time"
 
 	"github.com/jacobsa/go-serial/serial"
 	"github.com/rs/zerolog/log"
@@ -28,6 +29,30 @@ func connectToDevice() error {
 	return nil
 }
 
+func attemptReconnect() {
+	dur := 1 * time.Second
+	ticker := time.NewTicker(dur)
+
+	for range ticker.C {
+		err := connectToDevice()
+		if err != nil {
+			dur += time.Duration(float64(dur) * 0.2)
+
+			if dur > 30*time.Second {
+				dur = 30 * time.Second
+			}
+
+			log.Warn().Err(err).Msgf("failed to connect to device, retrying %d seconds", int(dur.Seconds()))
+
+			ticker.Reset(dur)
+		} else {
+			log.Info().Msg("connected to device")
+
+			return
+		}
+	}
+}
+
 func sendTCode(cmd string) error {
 	cmd = strings.TrimSuffix(cmd, "\n")
 
@@ -38,6 +63,16 @@ func sendTCode(cmd string) error {
 	if port != nil {
 		_, err := port.Write([]byte(cmd + "\n"))
 		if err != nil {
+			if strings.HasSuffix(err.Error(), "device not configured") {
+				log.Warn().Err(err).Msg("device not configured, most likely disconnected")
+
+				port = nil
+
+				go attemptReconnect()
+
+				return nil
+			}
+
 			return err
 		}
 	}
