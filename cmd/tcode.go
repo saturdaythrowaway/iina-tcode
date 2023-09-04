@@ -9,6 +9,8 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+var tc *TCode
+
 type Axis string
 
 const (
@@ -19,9 +21,10 @@ const (
 )
 
 type TCodeMessage struct {
-	Axis    Axis
-	Channel int
-	Value   float64
+	Axis     Axis
+	Channel  int
+	Value    float64
+	Duration time.Duration
 }
 
 func (tm TCodeMessage) String() string {
@@ -45,7 +48,11 @@ func (tm TCodeMessage) String() string {
 		}
 	}
 
-	return fmt.Sprintf("%s%d%s", tm.Axis, tm.Channel, pos)
+	if tm.Duration == 0 {
+		return fmt.Sprintf("%s%d%s", tm.Axis, tm.Channel, pos)
+	} else {
+		return fmt.Sprintf("%s%d%sI%d", tm.Axis, tm.Channel, pos, tm.Duration.Milliseconds())
+	}
 }
 
 type TCode struct {
@@ -68,10 +75,12 @@ type channel struct {
 }
 
 func NewTCode() *TCode {
-	return &TCode{
+	tc = &TCode{
 		ts:     0,
 		ticker: time.NewTicker(TPS),
 	}
+
+	return tc
 }
 
 func (t *TCode) Pause() {
@@ -79,7 +88,7 @@ func (t *TCode) Pause() {
 		return
 	}
 
-	t.Zero()
+	t.setValue(params.Min, time.Second)
 
 	log.Debug().Msg("pause")
 
@@ -188,16 +197,17 @@ func (t *TCode) Tick() <-chan string {
 	return messages
 }
 
-func (t *TCode) setValue(value float64) {
+func (t *TCode) setValue(value float64, duration time.Duration) {
 	if t == nil {
 		return
 	}
 
 	for _, c := range t.channels {
 		err := sendTCode((TCodeMessage{
-			Axis:    c.axis,
-			Channel: c.channel,
-			Value:   value,
+			Axis:     c.axis,
+			Channel:  c.channel,
+			Value:    value,
+			Duration: duration,
 		}).String())
 		if err != nil {
 			log.Error().Err(err).Msg("failed to send tcode")
@@ -205,22 +215,16 @@ func (t *TCode) setValue(value float64) {
 	}
 }
 
-func (t *TCode) Zero() {
-	t.setValue(0.0)
-}
-
-func (t *TCode) Center() {
-	t.setValue(0.5)
-}
-
-func (t *TCode) Max() {
-	t.setValue(1.0)
+func (t *TCode) Stop() {
+	t.ticker.Reset(math.MaxInt64)
 }
 
 func (t *TCode) Reset() {
 	defer func() {
 		_ = recover() // don't panic if channel is closed
 	}()
+
+	t.Stop()
 
 	if t.messages != nil {
 		close(t.messages)
@@ -231,11 +235,17 @@ func (t *TCode) Reset() {
 }
 
 func (t *TCode) Close() {
-	t.Reset()
+	t.Stop()
 
 	log.Info().Msg("closing")
 
-	t.Max()
-	t.Zero()
-	t.Center()
+	dur := time.Second
+
+	t.setValue(0.00001, dur)
+	time.Sleep(dur)
+	t.setValue(0.99999, dur)
+	time.Sleep(dur)
+	t.setValue(0.00001, dur)
+	time.Sleep(dur)
+	t.setValue(0.5, dur/2)
 }

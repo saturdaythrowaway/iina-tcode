@@ -345,7 +345,7 @@ func listen(port int) {
 			panic(err)
 		}
 
-		os.Exit(1)
+		os.Exit(0)
 	}()
 
 	<-closeChan
