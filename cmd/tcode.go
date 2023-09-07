@@ -248,4 +248,5 @@ func (t *TCode) Close() {
 	t.setValue(0.00001, dur)
 	time.Sleep(dur)
 	t.setValue(0.5, dur/2)
+	time.Sleep(dur / 2)
 }
