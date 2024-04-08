@@ -112,7 +112,7 @@ event.on("iina.file-loaded", async () => {
   if (path.startsWith("file://")) {
     path = path.slice(7);
     console.log("load");
-    rpc.call("load", ["filename", path]).then((res) => {
+    rpc.call("load", ["filename", encodeURIComponent(path)]).then((res) => {
       core.osd(res);
       console.log(res);
       

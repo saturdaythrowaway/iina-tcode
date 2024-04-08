@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -103,6 +104,11 @@ func listen(port int) {
 		case "load": // L#,R#,V#,script
 			filename := call.GetParam("filename")
 			dir := call.GetParam("folder")
+
+			filename, err = url.QueryUnescape(filename)
+			if err != nil {
+				log.Error().Err(err).Str("filename", filename).Msg("failed to unescape filename")
+			}
 
 			path := filename
 			if path == "" {
