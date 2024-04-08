@@ -216,6 +216,10 @@ func (t *TCode) setValue(value float64, duration time.Duration) {
 }
 
 func (t *TCode) Stop() {
+	if t == nil {
+		return
+	}
+
 	t.ticker.Reset(math.MaxInt64)
 }
 

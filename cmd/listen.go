@@ -78,8 +78,10 @@ func listen(port int) {
 		}
 
 		var call MethodCall
+
 		err = xml.Unmarshal(body, &call)
 		if err != nil {
+			fmt.Println(string(body))
 			panic(err)
 		}
 
