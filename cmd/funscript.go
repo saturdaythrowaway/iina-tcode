@@ -281,6 +281,13 @@ func (s *Scripts) TCode() (*TCode, error) {
 		ch.axis = script.Axis
 		ch.channel = script.Channel
 		ch.spline = &interp.FritschButland{}
+		// ch.spline = &interp.AkimaSpline{}
+		// ch.spline = &interp.NaturalCubic{}
+
+		ch.duration = script.Duration
+		if ch.duration == 0 {
+			ch.duration = script.Actions[len(script.Actions)-1].At
+		}
 
 		xs := make([]float64, 0, len(script.Actions))
 		ys := make([]float64, 0, len(script.Actions))
