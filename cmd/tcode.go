@@ -66,14 +66,37 @@ type TCode struct {
 }
 
 type spline interface {
-	Predict(x float64) float64
-	Fit(x, y []float64) error
+	interp.Predictor
+	interp.DerivativePredictor
+
+	Fit(xs, ys []float64) error
+}
+
+func PointFromSpline(s spline, pos float64, bottom, top float64) float64 {
+	d := 100.0
+	v := d + (bottom+top)*2
+
+	point := (s.Predict(pos) / v) + (bottom / d)
+
+	if point < 0.0 {
+		return 0.0
+	}
+
+	if point > 1.0 {
+		return 1.0
+	}
+
+	return point
 }
 
 type channel struct {
-	axis    Axis
-	channel int
-	spline  spline
+	axis     Axis
+	channel  int
+	spline   spline
+	duration int
+
+	maxOffset int
+	minOffset int
 }
 
 func NewTCode() *TCode {
@@ -143,31 +166,7 @@ func (t *TCode) Tick() <-chan string {
 					continue
 				}
 
-				opos := c.spline.Predict(float64(t.ts.Milliseconds())) / 100.0
-
-				if opos < 0.0 {
-					opos = 0.0
-				}
-
-				if opos > 1.0 {
-					opos = 1.0
-				}
-
-				if params.Max == 0 || params.Max > 1 {
-					params.Max = 1
-				}
-
-				if params.Min < 0 || params.Min == 1 {
-					params.Min = 0
-				}
-
-				if params.Min > params.Max {
-					params.Min = params.Max
-				}
-
-				strokeRange := (params.Max - params.Min)
-				pos := opos*strokeRange + params.Min
-
+				pos := PointFromSpline(c.spline, float64(t.ts.Milliseconds()), params.Min, params.Max)
 				msg := TCodeMessage{
 					Axis:    c.axis,
 					Channel: c.channel,
@@ -255,4 +254,5 @@ func (t *TCode) Close() {
 	time.Sleep(dur)
 	t.setValue(0.5, dur/2)
 	time.Sleep(dur / 2)
+	t.setValue(0.5, 0)
 }
