@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 )
 
@@ -18,6 +19,13 @@ func play(filename string) error {
 	tcode, err := scripts.TCode()
 	if err != nil {
 		return fmt.Errorf("%s: %w", "scripts.TCode", err)
+	}
+
+	if os.Getenv("DEBUG") != "" {
+		err = WriteImageFromTcode(tcode, "debug.png")
+		if err != nil {
+			return fmt.Errorf("%s: %w", "WriteImageFromTcode", err)
+		}
 	}
 
 	tcode.Seek(time.Duration(0))

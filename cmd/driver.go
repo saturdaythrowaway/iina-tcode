@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"os"
 	"strings"
 	"time"
 
@@ -74,6 +75,10 @@ func sendTCode(cmd string) error {
 			}
 
 			return err
+		}
+
+		if os.Getenv("DEBUG") != "" {
+			log.Debug().Str("tcode", cmd).Msg("sent")
 		}
 	}
 

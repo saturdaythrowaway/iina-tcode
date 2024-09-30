@@ -152,6 +152,13 @@ func listen(port int) {
 				panic(err)
 			}
 
+			if os.Getenv("DEBUG") != "" {
+				err = WriteImageFromTcode(tcode, "debug.png")
+				if err != nil {
+					panic(err)
+				}
+			}
+
 			go func() {
 				defer func() {
 					_ = recover() // ignore panic
