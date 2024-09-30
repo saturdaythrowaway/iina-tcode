@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"gonum.org/v1/gonum/interp"
 )
 
 var tc *TCode
@@ -41,6 +42,7 @@ func (tm TCodeMessage) String() string {
 		pos = "99999"
 	default:
 		pos = fmt.Sprintf("%f", tm.Value)[2:]
+
 		if len(pos) > 5 {
 			pos = pos[:5]
 		} else if len(pos) < 5 {
@@ -50,9 +52,9 @@ func (tm TCodeMessage) String() string {
 
 	if tm.Duration == 0 {
 		return fmt.Sprintf("%s%d%s", tm.Axis, tm.Channel, pos)
-	} else {
-		return fmt.Sprintf("%s%d%sI%d", tm.Axis, tm.Channel, pos, tm.Duration.Milliseconds())
 	}
+
+	return fmt.Sprintf("%s%d%sI%d", tm.Axis, tm.Channel, pos, tm.Duration.Milliseconds())
 }
 
 type TCode struct {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -43,8 +44,10 @@ type Script struct {
 	Channel  int       `json:"-"`
 	Modifier ScriptMod `json:"-"`
 
+	Duration int `json:"duration"`
+
 	Actions  []FunscriptAction `json:"actions"`
-	Inverted bool              `json:"inverted"`
+	Inverted any               `json:"inverted"`
 	Range    int               `json:"range"`
 	Version  string            `json:"version"`
 }
@@ -161,7 +164,7 @@ func (s *Scripts) Load(path string) error {
 	s.Reset()
 
 	if path == "" {
-		return fmt.Errorf("no folder or dir param")
+		return errors.New("no folder or dir param")
 	}
 
 	fi, err := os.Stat(path)
@@ -251,7 +254,7 @@ func (s *Scripts) Load(path string) error {
 	}
 
 	if len(s.scripts) == 0 {
-		return fmt.Errorf("no scripts loaded")
+		return errors.New("no scripts loaded")
 	}
 
 	scripts := []string{}
@@ -266,7 +269,7 @@ func (s *Scripts) Load(path string) error {
 
 func (s *Scripts) TCode() (*TCode, error) {
 	if s == nil {
-		return nil, fmt.Errorf("no scripts loaded")
+		return nil, errors.New("no scripts loaded")
 	}
 
 	tcode := NewTCode()
@@ -274,6 +277,7 @@ func (s *Scripts) TCode() (*TCode, error) {
 
 	for _, script := range s.scripts {
 		ch := channel{}
+
 		ch.axis = script.Axis
 		ch.channel = script.Channel
 		ch.spline = &interp.FritschButland{}
@@ -308,7 +312,7 @@ func (s *Scripts) TCode() (*TCode, error) {
 
 		err := ch.spline.Fit(xs, ys)
 		if err != nil {
-			return nil, fmt.Errorf("failed to fit spline: %w", err)
+			log.Warn().Err(err).Msgf("failed to fit spline for %s", script)
 		}
 
 		tcode.channels = append(tcode.channels, ch)
@@ -316,7 +320,7 @@ func (s *Scripts) TCode() (*TCode, error) {
 
 	log.Info().Any("loaded", s.Loaded()).Msgf("loaded %d channels", len(tcode.channels))
 
-	err := sendTCode("L00, L10, L20, L30, A10, R00, R10, R20, V00, V10, A20, V20")
+	err := sendTCode("L10, L20, L30, A10, R00, R10, R20, V00, V10, A20, V20")
 	if err != nil {
 		return tcode, err
 	}

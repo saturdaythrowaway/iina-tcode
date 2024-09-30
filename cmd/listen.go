@@ -72,10 +72,11 @@ func listen(port int) {
 
 	http.HandleFunc("/xmlrpc", func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
-		defer r.Body.Close()
 		if err != nil {
 			panic(err)
 		}
+
+		defer r.Body.Close()
 
 		var call MethodCall
 
@@ -129,6 +130,7 @@ func listen(port int) {
 			loadedScripts = &Scripts{
 				preferedModifier: ScriptModSoft,
 			}
+
 			err := loadedScripts.Load(path)
 			if err != nil {
 				log.Error().Err(err).Msg("failed to load scripts")
@@ -174,6 +176,7 @@ func listen(port int) {
 				} else {
 					if f != params.Min {
 						l.Float64("min", f)
+
 						change = true
 					}
 
@@ -189,6 +192,7 @@ func listen(port int) {
 				} else {
 					if f != params.Max {
 						l.Float64("max", f)
+
 						change = true
 					}
 
@@ -208,6 +212,7 @@ func listen(port int) {
 				} else {
 					if d != params.Offset {
 						l.Dur("offset", d)
+
 						change = true
 					}
 
@@ -224,6 +229,7 @@ func listen(port int) {
 			if alt == trueString {
 				if !params.PreferAlt {
 					l.Bool("preferAlt", true)
+
 					change = true
 				}
 
@@ -231,6 +237,7 @@ func listen(port int) {
 			} else if alt == falseString {
 				if params.PreferAlt {
 					l.Bool("preferAlt", false)
+
 					change = true
 				}
 
@@ -241,6 +248,7 @@ func listen(port int) {
 			if soft == trueString {
 				if !params.PreferSoft {
 					l.Bool("preferSoft", true)
+
 					change = true
 				}
 
@@ -248,6 +256,7 @@ func listen(port int) {
 			} else if soft == falseString {
 				if params.PreferSoft {
 					l.Bool("preferSoft", false)
+
 					change = true
 				}
 
@@ -258,6 +267,7 @@ func listen(port int) {
 			if hard == trueString {
 				if !params.PreferHard {
 					l.Bool("preferHard", true)
+
 					change = true
 				}
 
@@ -265,6 +275,7 @@ func listen(port int) {
 			} else if hard == falseString {
 				if params.PreferHard {
 					l.Bool("preferHard", false)
+
 					change = true
 				}
 
